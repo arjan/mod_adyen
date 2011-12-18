@@ -34,6 +34,10 @@
 observe_get_payment_providers(get_payment_providers, Acc, Context) ->
     [#payment_provider{name=?__("Adyen", Context),
                        module=?MODULE,
-                       action=adyen_offramp} | Acc].
+                       action=adyen_offramp},
+     #payment_provider{name=?__("Paypal", Context),
+                       module=?MODULE,
+                       action=adyen_offramp}
+     | Acc].
 
 
