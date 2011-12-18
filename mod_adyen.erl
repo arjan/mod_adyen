@@ -26,6 +26,14 @@
 -mod_prio(900).
 
 -include_lib("include/zotonic.hrl").
+-include_lib("../mod_shop/include/mod_shop.hrl").
 
--export([]).
+-export([observe_get_payment_providers/3]).
+
+
+observe_get_payment_providers(get_payment_providers, Acc, Context) ->
+    [#payment_provider{name=?__("Adyen", Context),
+                       module=?MODULE,
+                       action=adyen_offramp} | Acc].
+
 
