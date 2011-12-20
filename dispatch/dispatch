@@ -1,0 +1,5 @@
+[
+ {admin_adyen,        ["admin", "adyen"],        resource_admin, [{template, "admin_adyen.tpl"}, {selected, adyen}]},
+ {adyen_notification, ["adyen", "notification"], resource_adyen_notification, []},
+ {adyen_callback,     ["adyen", "callback"],     resource_adyen_callback, []}
+].

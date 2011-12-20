@@ -28,16 +28,29 @@
 -include_lib("include/zotonic.hrl").
 -include_lib("../mod_shop/include/mod_shop.hrl").
 
--export([observe_get_payment_providers/3]).
+-export([observe_get_payment_providers/3, event/2, adyen_offramp/2]).
 
 
 observe_get_payment_providers(get_payment_providers, Acc, Context) ->
     [#payment_provider{name=?__("Adyen", Context),
                        module=?MODULE,
-                       action=adyen_offramp},
+                       function=adyen_offramp},
      #payment_provider{name=?__("Paypal", Context),
                        module=?MODULE,
-                       action=adyen_offramp}
+                       function=adyen_offramp}
      | Acc].
 
+
+
+%% @doc Save the config values.
+event({submit, {admin_save, []}, _, _}, Context) ->
+    All = z_context:get_q([payment_page, merchant_account, skincode, secret, notification_username, notification_password], Context),
+    [m_config:set_value(adyen, K, V, Context) || {K, V} <- All],
+    z_render:wire({reload, []}, Context).
+
+
+%% @doc Redirect to Adyen.
+adyen_offramp(Order=#shop_order{}, Context) ->
+    Url = adyen_support:payment_start(Order, Context),
+    z_render:wire({redirect, [{location, Url}]}, Context).
 

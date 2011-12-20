@@ -11,7 +11,6 @@
 
 %% interface functions
 -export([
-    install/1,
     periodic_log_check/1,
     payment_start/2,
     payment_completion/1,
@@ -23,15 +22,8 @@
 -define(SHOP_ORDER_SHIPMENT, ?WEEK).
 
 -include_lib("zotonic.hrl").
+-include_lib("../../mod_shop/include/mod_shop.hrl").
 
-
-install(Context) ->
-    m_config:set_value(adyen, notification_username, "adyen", Context),
-    m_config:set_value(adyen, notification_password, "", Context),
-    m_config:set_value(adyen, payment_page, "https://test.adyen.com/hpp/pay.shtml", Context),
-    m_config:set_value(adyen, merchant_account, "", Context),
-    m_config:set_value(adyen, skincode, "", Context),
-    m_config:set_value(adyen, secret, "", Context).
 
 
 %% Handle log entries that were not handled, might be because of crashed between saving the entry and running the queries.
@@ -48,20 +40,18 @@ periodic_log_check(Context) ->
 
 %% @doc Build the payment uri to be used for paying the order.
 %% @spec payment_uri(Id, Context) -> String
-payment_start(Id, Context) ->
+payment_start(Order=#shop_order{}, Context) ->
     NowSecs = calendar:datetime_to_gregorian_seconds(calendar:local_time()),
-    Order = z_db:assoc_row("select * from shop_order where id = $1", [Id], Context),
-
-    MerchantReference = integer_to_list(Id),
-    PaymentAmount     = integer_to_list(proplists:get_value(total_price_incl, Order)),
+    MerchantReference = z_convert:to_list(Order#shop_order.id),
+    PaymentAmount     = z_convert:to_list(Order#shop_order.price_inc_vat),
     CurrencyCode      = "EUR",
     ShipBeforeDate    = erlydtl_dateformat:format(calendar:gregorian_seconds_to_datetime(NowSecs + ?SHOP_ORDER_SHIPMENT), "Y-m-d", Context),
     SkinCode          = m_config:get_value(adyen, skincode, Context),
     MerchantAccount   = m_config:get_value(adyen, merchant_account, Context),
     ShopperLocale     = case z_context:language(Context) of en -> "en_GB"; Lang -> atom_to_list(Lang) end,
-    SessionValidity   = erlydtl_dateformat:format(calendar:universal_time_to_local_time(proplists:get_value(expires, Order)), "c", Context),
-    ShopperEmail      = proplists:get_value(email, Order),
-    ShopperReference  = z_convert:to_list(proplists:get_value(persistent_id, Order)),
+    SessionValidity   = ShipBeforeDate, %%erlydtl_dateformat:format(calendar:universal_time_to_local_time(proplists:get_value(expires, Order)), "c", Context),
+    ShopperEmail      = z_convert:to_list(Order#shop_order.email),
+    ShopperReference  = z_convert:to_list(Order#shop_order.shopper_ref),
     AllowedMethods    = "paypal,card,ideal",
     BlockedMethods    = "",
     OrderData         = "",
